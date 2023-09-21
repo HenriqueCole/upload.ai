@@ -1,14 +1,26 @@
+import { api } from "@/lib/axios";
 import { getFFmpeg } from "@/lib/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
-import { FileVideo, Upload } from "lucide-react";
+import { CheckCircle2, FileVideo, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Textarea } from "./ui/textarea";
 
+type Status = "waiting" | "converting" | "uploading" | "generating" | "success";
+
+const statusMessages = {
+  converting: "Converting video to audio...",
+  generating: "Generating transcription...",
+  uploading: "Uploading audio...",
+  success: "Video uploaded successfully!",
+};
+
 export function VideoInputForm() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [status, setStatus] = useState<Status>("waiting");
+
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
 
   async function convertVideoToAudio(video: File) {
@@ -17,9 +29,6 @@ export function VideoInputForm() {
     const ffmpeg = await getFFmpeg();
 
     await ffmpeg.writeFile("input.mp4", await fetchFile(video));
-
-    //in case of errors:
-    // ffmpeg.on("log", (message) => console.log(message));
 
     ffmpeg.on("progress", (progress) => {
       console.log(
@@ -61,11 +70,27 @@ export function VideoInputForm() {
       return;
     }
 
-    //converter o vídeo em áudio
+    setStatus("converting");
 
     const audioFile = await convertVideoToAudio(videoFile);
-  
-    console.log(audioFile, prompt);
+
+    const data = new FormData();
+
+    data.append("file", audioFile);
+
+    setStatus("uploading");
+
+    const response = await api.post("/videos", data);
+
+    const videoId = response.data.video.id;
+
+    setStatus("generating");
+
+    await api.post(`/videos/${videoId}/transcription`, {
+      prompt,
+    });
+
+    setStatus("success");
   }
 
   function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
@@ -124,14 +149,31 @@ export function VideoInputForm() {
           <Label htmlFor="transcription_prompt">Transcription prompt</Label>
           <Textarea
             ref={promptInputRef}
+            disabled={status !== "waiting"}
             id="transcription_prompt"
             className="h-20 resize-none leading-relaxed"
             placeholder="Include keywords mentioned in the video separated by a comma (,)"
           />
         </div>
-        <Button type="submit" className="w-full">
-          Upload video
-          <Upload className="w-4 h-4 ml-2" />
+        <Button
+          disabled={status !== "waiting"}
+          type="submit"
+          data-success={status === "success"}
+          className="w-full data-[success=true]:bg-emerald-400"
+        >
+          {status === "waiting" ? (
+            <>
+              Upload video
+              <Upload className="w-4 h-4 ml-2" />
+            </>
+          ) : (
+            <>
+              {statusMessages[status]}
+              {
+                status === "success" && <CheckCircle2 className="w-5 h-5 ml-2" />
+              }
+            </>
+          )}
         </Button>
       </div>
     </form>
