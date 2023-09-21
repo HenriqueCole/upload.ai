@@ -23,3 +23,15 @@ Content-Type: application/json
 {
   "prompt": "vite, react, tailwind"
 }
+
+###
+
+# @name completion-ai-completion
+POST http://localhost:3000/ai/complete
+Content-Type: application/json
+
+{
+  "videoId": "65a6dc04-29a6-430b-9349-d6ae0fa852a1",
+  "temperature": 0.5,
+  "template": "Gere um resumo sucinto da transcrição do vídeo informada a seguir: '''{transcription}'''"
+}
