@@ -47,7 +47,9 @@ export function App() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <Separator orientation="vertical" className="h-6" />
-          <Button variant="outline">
+          <Button variant="outline" onClick={
+            () => window.open("https://github.com/HenriqueCole")
+          }>
             <Github className="h-4 w-4 mr-2" />
             Github
           </Button>
